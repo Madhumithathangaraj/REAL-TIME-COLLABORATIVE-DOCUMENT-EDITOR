@@ -1,0 +1,59 @@
+const express = require("express");
+const http = require("http");
+const mongoose = require("mongoose");
+const { Server } = require("socket.io");
+const cors = require("cors");
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "http://localhost:3000" },
+});
+
+app.use(cors());
+app.use(express.json());
+
+mongoose.connect("mongodb://localhost:27017/collab-doc", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+const DocumentSchema = new mongoose.Schema({
+  content: String,
+});
+
+const Document = mongoose.model("Document", DocumentSchema);
+
+// Load the first document or create it
+let currentDoc;
+
+Document.findOne().then((doc) => {
+  if (!doc) {
+    const newDoc = new Document({ content: "" });
+    newDoc.save();
+    currentDoc = newDoc;
+  } else {
+    currentDoc = doc;
+  }
+});
+
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  // Send initial doc content
+  socket.emit("document", currentDoc?.content || "");
+
+  socket.on("document", async (data) => {
+    currentDoc.content = data;
+    await currentDoc.save();
+    socket.broadcast.emit("document", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
+server.listen(5000, () => {
+  console.log("Server running on http://localhost:5000");
+});
