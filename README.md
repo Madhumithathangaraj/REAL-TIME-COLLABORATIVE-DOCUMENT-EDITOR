@@ -55,6 +55,7 @@ User A types "Hello"
 The frontend captures this.
 
 It sends "Hello" to the backend via WebSocket.
+![Image](https://github.com/user-attachments/assets/ec952729-9de1-4231-b789-6b32a2b80097)
 
 Backend updates the doc in the DB.
 
